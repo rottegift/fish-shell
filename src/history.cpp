@@ -1396,6 +1396,7 @@ bool history_t::save_internal_via_appending() {
 
     // If the file is different (someone vacuumed it) then we need to update our mmap.
     bool file_changed = false;
+    bool lret = 0;
 
     // Get the path to the real history file.
     wcstring history_path = history_filename(name, wcstring());
@@ -1422,7 +1423,7 @@ bool history_t::save_internal_via_appending() {
         // by writing with O_APPEND.
         //
         // Simulate a failing lock in chaos_mode
-        if (!chaos_mode) history_file_lock(fd, LOCK_EX);
+        if (!chaos_mode) lret = history_file_lock(fd, LOCK_EX);
         const file_id_t file_id = file_id_for_fd(fd);
         if (file_id_for_path(history_path) != file_id) {
             // The file has changed, we're going to retry
@@ -1430,7 +1431,7 @@ bool history_t::save_internal_via_appending() {
         } else {
             // File IDs match, so the file we opened is still at that path
             // We're going to use this fd
-            if (file_id != this->mmap_file_id) {
+            if (file_id != this->mmap_file_id || !lret) {
                 file_changed = true;
             }
             history_fd = fd;
